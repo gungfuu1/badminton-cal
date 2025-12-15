@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>คำนวณค่าแบดมินตัน</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    h2 { margin-top: 30px; }
+    input { margin: 4px; width: 120px; }
+    button { margin: 6px 0; }
+    .group { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    .result { background: #f7f7f7; padding: 10px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>🏸 คำนวณค่าแบดมินตันต่อคน</h1>
+
+<h2>ข้อมูลสนาม</h2>
+ราคาสนาม (บาท/ชั่วโมง):
+<input type="number" id="courtPrice" value="230"><br>
+จำนวนชั่วโมงรวม:
+<input type="number" id="courtHours" value="2">
+
+<h2>ลูกแบด</h2>
+ราคาลูก (บาท/ลูก):
+<input type="number" id="shuttlePrice" value="50">
+จำนวนลูก:
+<input type="number" id="shuttleQty" value="5">
+
+<h2>กลุ่มผู้เล่น</h2>
+<div id="groups"></div>
+<button onclick="addGroup()">➕ เพิ่มกลุ่ม</button>
+
+<br><br>
+<button onclick="calculate()">🧮 คำนวณ</button>
+
+<div id="output" class="result"></div>
+
+<script>
+let groupCount = 0;
+
+function addGroup() {
+  groupCount++;
+  const div = document.createElement("div");
+  div.className = "group";
+  div.dataset.id = groupCount;
+
+  div.innerHTML = `
+    <b>กลุ่ม ${groupCount}</b>
+    <button type="button" onclick="removeGroup(this)">❌ ลบ</button><br>
+    จำนวนคน:
+    <input type="number" class="people" value="4" min="1">
+    เวลาที่เล่น (นาที):
+    <input type="number" class="minutes" value="60" min="1">
+  `;
+
+  document.getElementById("groups").appendChild(div);
+}
+
+function removeGroup(btn) {
+  btn.parentElement.remove();
+}
+
+function calculate() {
+  const courtPrice = +document.getElementById("courtPrice").value;
+  const shuttlePrice = +document.getElementById("shuttlePrice").value;
+  const shuttleQty = +document.getElementById("shuttleQty").value;
+
+  const peopleEls = document.querySelectorAll(".people");
+  const minuteEls = document.querySelectorAll(".minutes");
+
+  if (peopleEls.length === 0) {
+    alert("ต้องมีอย่างน้อย 1 กลุ่ม");
+    return;
+  }
+
+  let groups = [];
+  let totalPeople = 0;
+
+  for (let i = 0; i < peopleEls.length; i++) {
+    const people = +peopleEls[i].value;
+    const minutes = +minuteEls[i].value;
+
+    groups.push({
+      people,
+      minutes,
+      courtCost: 0
+    });
+
+    totalPeople += people;
+  }
+
+  const maxMinutes = Math.max(...groups.map(g => g.minutes));
+
+  // คิดค่าสนามแบบ timeline (ทีละ 60 นาที)
+  for (let t = 0; t < maxMinutes; t += 60) {
+    const activeGroups = groups.filter(g => g.minutes > t);
+    const activePeople = activeGroups.reduce((s, g) => s + g.people, 0);
+
+    activeGroups.forEach(g => {
+      g.courtCost += (courtPrice / activePeople) * g.people;
+    });
+  }
+
+  const shuttleTotal = shuttlePrice * shuttleQty;
+  const shuttlePerPerson = shuttleTotal / totalPeople;
+
+  let html = `
+    <h2>ผลลัพธ์</h2>
+    ราคาสนาม: ${courtPrice} บาท/ชม.<br>
+    ลูกแบด: ${shuttleTotal} บาท<br>
+    รวมทั้งหมด: ${(courtPrice * (maxMinutes / 60) + shuttleTotal).toFixed(2)} บาท
+    <hr>
+  `;
+
+  groups.forEach((g, i) => {
+    const courtPerPerson = g.courtCost / g.people;
+    const totalPerPerson = courtPerPerson + shuttlePerPerson;
+
+    html += `
+      <b>กลุ่ม ${i + 1}</b><br>
+      ค่าสนามคนละ: ${courtPerPerson.toFixed(2)} บาท<br>
+      ลูกแบดคนละ: ${shuttlePerPerson.toFixed(2)} บาท<br>
+      <b>รวมจ่ายคนละ: ${totalPerPerson.toFixed(2)} บาท</b>
+      <hr>
+    `;
+  });
+
+  document.getElementById("output").innerHTML = html;
+}
+
+// ค่าเริ่มต้น: 1 กลุ่ม
+addGroup();
+</script>
+
+
+
+
+</body>
+</html>
